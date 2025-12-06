@@ -19,3 +19,12 @@ az group show --name trwolf-np-westus2-ai-rg --query tags --output table
 
 # create multi service ai foundry
 az cognitiveservices account create -n trwolf-np-wus3-aiservices-ais -g trwolf-np-westus2-ai-rg  --kind AIServices --sku S0 --location westus3 --yes 
+
+# get foundry endpoint, add to .env file
+az cognitiveservices account show -n trwolf-np-wus3-aiservices-ais -g trwolf-np-westus2-ai-rg --query "properties.endpoint" --output tsv 
+
+# get foundry keys, add to .env file
+az cognitiveservices account keys list -n trwolf-np-wus3-aiservices-ais -g trwolf-np-westus2-ai-rg --query "key1" --output tsv 
+
+# list foundry projects
+az cognitiveservices project list -n trwolf-np-wus3-aiservices-ais -g trwolf-np-westus2-ai-rg --output table 
