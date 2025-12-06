@@ -1,0 +1,12 @@
+az login 
+
+az account list --output table 
+
+# display the current subscription's id and name
+az account show --query "{SubscriptionId: id, name: name}" --output table 
+
+# display all resource groups in the current subscription
+az group list --output table 
+
+# create a resource group for ai-102, using naming convention `<orgOrBU>-<env>-<region>-<workloadOrFunction>-rg`
+az group create --name trwolf-dev-westus2-ai102-rg --location westus2 
