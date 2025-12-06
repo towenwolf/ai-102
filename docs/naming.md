@@ -15,11 +15,13 @@ If the file or folder cannot be named with `kebab-case` (for exmaple fabric lake
 ## Resources
 Always reference the azure naming convention to find abbreviation  
 https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations
+`<orgOrBU>-<env>-<region>-<workloadOrFunction>-<svc>`
 
-Examples:  
+Examples of service abbreviations:  
 Logic App - `logic`  
 Storage account (general use) - `stcd<workload, application, or project><###>`  
 Function App - `func`
+
 
 ## Env
 Will be one of these three, depending on which subscription it is deployed to.

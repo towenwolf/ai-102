@@ -5,8 +5,17 @@ az account list --output table
 # display the current subscription's id and name
 az account show --query "{SubscriptionId: id, name: name}" --output table 
 
-# display all resource groups in the current subscription
+# display all resource groups in the current subscription with tags
 az group list --output table 
 
-# create a resource group for ai-102, using naming convention `<orgOrBU>-<env>-<region>-<workloadOrFunction>-rg`
-az group create --name trwolf-dev-westus2-ai102-rg --location westus2 
+# delete groups to clean up if needed
+# az group delete --name trwolf-np-westus2-ai-rg --yes --no-wait 
+
+# create a resource group for ai-102, using naming convention `<orgOrBU>-<env>-<region>-<workloadOrFunction>-rg`, tag with type='platform' and env='np'
+az group create --name trwolf-np-westus2-ai-rg --location westus2 --tags "env=np" "type=platform"
+
+# list tags on the resource group
+az group show --name trwolf-np-westus2-ai-rg --query tags --output table 
+
+# create multi service ai foundry
+az cognitiveservices account create -n trwolf-np-wus3-aiservices-ais -g trwolf-np-westus2-ai-rg  --kind AIServices --sku S0 --location westus3 --yes 
