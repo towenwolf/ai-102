@@ -9,6 +9,7 @@ This real-world example demonstrates a minimal, production-shaped batch data pip
 * Transform logic executes and writes Parquet/Delta output to `curated/`.
 * Job completes successfully via a single on-demand Kubernetes Job.
 * Logs are visible in Azure Monitor / pod logs.
+* Be able to spin up resource group with IaC, then spin down when done using.
 
 # Architecture Diagram
 ```mermaid
@@ -81,22 +82,54 @@ flowchart LR
 
 
 # MVP
-1. **Provision Resources - PowerShell Script (use az cli when possible)**
-    - AKS (1 system pool + 1 “spark” user pool)
-    - ACR (Azure Container Registry)
-    - ADLS Gen2 container (`raw/`, `curated/`, `logs/`).
-    - Enable **Azure Workload Identity** (no storage keys in pods).
+1. **Provision Azure Resources - PowerShell Script (use az cli when possible)**
+    - **Resource Group** – container for all resources
+    - **AKS** – 1 system pool + 1 "spark" user pool with autoscaling
+      - Enable **Workload Identity** and **OIDC Issuer**
+    - **ACR** – Azure Container Registry for Spark job image
+      - Attach ACR to AKS for image pull access
+    - **ADLS Gen2** – Storage account with hierarchical namespace
+      - Containers: `raw/`, `curated/`, `logs/`
+    - **Managed Identity** – User-assigned identity for Spark workloads
+      - Assign `Storage Blob Data Contributor` role on ADLS
+    - **Log Analytics Workspace** – for Azure Monitor integration
+      - Enable **Container Insights** on AKS
     - Be able to spin up resources (IaC), and then spin down after use
-2. **K8s baseline**
-    - Namespace `data-spark`.
-    - ServiceAccount `spark-sa` mapped to a managed identity with ADLS RBAC.
-3. **Build job**
-    - Simple PySpark app: read `raw/sample.csv` → add derived column + groupby → write `curated/output/` as Parquet (or Delta).
-4. **Containerize**
-    - Build image (Spark + hadoop-azure connector + your script) → push to ACR.
-5. **Run once**
-    - Submit via a Kubernetes **Job** that runs `spark-submit --master k8s://...` (driver pod launches executor pods).
+2. **K8s Baseline (Workload Identity Chain)**
+    - Namespace `data-spark`
+    - ServiceAccount `spark-sa` with:
+      - Annotation: `azure.workload.identity/client-id: <managed-identity-client-id>`
+      - Label: `azure.workload.identity/use: "true"`
+    - **Federated Identity Credential** – links K8s ServiceAccount to Managed Identity
+3. **Build PySpark Artifact**
+    - Create `src/` folder with:
+      - `main.py` – entry point script (read CSV → transform → write Parquet)
+      - `requirements.txt` – Python dependencies (if any beyond Spark)
+    - Transform logic:
+      - Read `raw/sample.csv` from ADLS
+      - Add derived column (e.g., `year` extracted from date)
+      - Perform `groupby` aggregation
+      - Write output to `curated/output/` as Parquet (or Delta)
+    - Local validation:
+      - Test script locally with `spark-submit` against sample data before containerizing
+4. **Containerize & Push to ACR**
+    - Create `Dockerfile`:
+      - Base image: `apache/spark:3.5.1-python3`
+      - Install `hadoop-azure` and `azure-identity` JARs for ADLS access
+      - Copy `src/` into image
+    - Build and push:
+      - `az acr build --registry <acr-name> --image spark-job:v1 .`
+5. **Deploy & Run Job**
+    - Create Kubernetes `Job` manifest that:
+      - Uses ServiceAccount `spark-sa`
+      - References image from ACR
+      - Runs `spark-submit --master k8s://...` (driver pod launches executor pods)
+    - Apply: `kubectl apply -f job.yml`
 6. **Validate**
-    - Check: driver/executor pods succeeded, logs in stdout, `curated/output/` exists, row count matches expectation.
-7. **Minimum observability**
-    - Azure Monitor Container Insights enabled; pod logs visible for troubleshooting.
+    - Driver/executor pods completed successfully
+    - Logs visible in pod stdout and Azure Monitor
+    - `curated/output/` exists in ADLS with expected row count
+7. **Observability**
+    - Azure Monitor Container Insights enabled
+    - Pod logs queryable via Log Analytics
+    - Driver/executor metrics visible in Azure Portal
