@@ -1,0 +1,68 @@
+# core-infra.yml
+# Naming convention: <orgOrBU>-<env>-<region>-<workloadOrFunction>-<resourceType>
+azure:
+  subscription_id: "<SUBSCRIPTION_ID>"
+  tenant_id: "<TENANT_ID>"
+  location: "westus2"
+  region_abbrev: "wus2"
+  org: "trwolf"
+  resource_group: "trwolf-dev-wus2-analytics-rg"
+  tags:
+    env: "dev"
+    type: "workload"
+    owner: "data-platform"
+
+aks:
+  name: "trwolf-dev-wus2-analytics-aks"
+  kubernetes_version: "1.29.x"
+  private_cluster: false
+  rbac_enabled: true
+  workload_identity_enabled: true
+  oidc_issuer_enabled: true
+
+  networking:
+    network_plugin: "azure"
+    vnet_name: "trwolf-dev-wus2-analytics-vnet"
+    vnet_cidr: "10.10.0.0/16"
+    subnet_name: "trwolf-dev-wus2-aks-snet"
+    subnet_cidr: "10.10.1.0/24"
+
+  node_pools:
+    system:
+      name: "system"
+      vm_size: "Standard_DS2_v2"
+      node_count: 1
+      max_pods_per_node: 30
+    spark:
+      name: "spark"
+      vm_size: "Standard_D8s_v5"
+      min_count: 1
+      max_count: 4
+      enable_autoscaling: true
+      max_pods_per_node: 30
+
+acr:
+  name: "trwolfdevwus2analyticsacr"
+  sku: "Basic"
+  private_endpoint: false
+
+storage:
+  account_name: "trwolfdevwus2analyticsdls"
+  kind: "StorageV2"
+  redundancy: "LRS"
+  hierarchical_namespace: true
+  containers:
+    - raw
+    - curated
+    - logs
+
+identity:
+  managed_identity_name: "trwolf-dev-wus2-spark-mi"
+  kubernetes_namespace: "data-spark"
+  service_account_name: "spark-sa"
+  role_assignments:
+    - role: "Storage Blob Data Contributor"
+      scope: "storage_account"
+
+observability:
+  container_insights_enabled: true

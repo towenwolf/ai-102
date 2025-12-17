@@ -27,4 +27,7 @@ az cognitiveservices account show -n trwolf-np-wus3-aiservices-ais -g trwolf-np-
 az cognitiveservices account keys list -n trwolf-np-wus3-aiservices-ais -g trwolf-np-westus2-ai-rg --query "key1" --output tsv 
 
 # list foundry projects
-az cognitiveservices project list -n trwolf-np-wus3-aiservices-ais -g trwolf-np-westus2-ai-rg --output table 
+az cognitiveservices account project list --name trwolf-np-wus3-aiservices-ais --resource-group trwolf-np-westus2-ai-rg 
+
+# create a new foundry project
+az cognitiveservices account project create --name trwolf-np-wus3-aiservices-ais --resource-group trwolf-np-westus2-ai-rg --project-name ai-102-foundry-project --location westus2 --description "AI-102 Foundry Project" 
